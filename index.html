@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Cell System Calculator</title>
+    <!-- ใช้ Tailwind CSS สำหรับ UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-amber-400 to-orange-500 p-6 text-white text-center">
+            <h1 class="text-3xl font-bold mb-2">โปรแกรมคำนวณระบบโซล่าเซลล์</h1>
+            <p class="text-white/90 text-sm md:text-base">วิเคราะห์ขนาดกำลังติดตั้ง อินเวอร์เตอร์ และจุดคุ้มทุน (On-Grid System)</p>
+        </div>
+
+        <div class="p-6 md:p-8 grid md:grid-cols-2 gap-8">
+            <!-- Section 1: Input -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-semibold border-b pb-2 text-slate-700">1. ป้อนข้อมูลการใช้งาน</h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ค่าไฟฟ้าเฉลี่ยต่อเดือน (บาท)</label>
+                    <input type="number" id="monthlyBill" placeholder="เช่น 3000" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" value="3000">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">สัดส่วนการใช้ไฟตอนกลางวัน (%)</label>
+                    <input type="number" id="daytimeUsage" placeholder="เช่น 60" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition" value="50">
+                    <p class="text-xs text-gray-500 mt-1">เวลา 08:00 - 17:00 น.</p>
+                </div>
+
+                <button onclick="calculateSolar()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200">
+                    คำนวณระบบ
+                </button>
+            </div>
+
+            <!-- Section 2: Results -->
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 shadow-inner">
+                <h2 class="text-xl font-semibold border-b pb-2 text-slate-700 mb-4">2. ผลการประเมิน (สรุปทางวิศวกรรม)</h2>
+                
+                <div id="results" class="space-y-4 hidden">
+                    <!-- การคำนวณทางไฟฟ้า -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+                        <h3 class="text-sm text-gray-500">ขนาดระบบแผงที่แนะนำ (kWp)</h3>
+                        <p class="text-2xl font-bold text-blue-600"><span id="res-kwp">0.00</span> kW</p>
+                        <p class="text-xs text-gray-400 mt-1">คำนวณจาก PSH 4.5 ชม. และ System Loss 20%</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-indigo-500">
+                        <h3 class="text-sm text-gray-500">พิกัดอินเวอร์เตอร์ที่เหมาะสม</h3>
+                        <p class="text-xl font-bold text-indigo-600"><span id="res-inverter">0.00</span> kW</p>
+                        <p class="text-xs text-gray-400 mt-1">เผื่อขนาด 10-20% ตามหลักการออกแบบ</p>
+                    </div>
+
+                    <!-- เศรษฐศาสตร์ -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
+                        <h3 class="text-sm text-gray-500">งบประมาณการติดตั้งโดยประมาณ</h3>
+                        <p class="text-xl font-bold text-green-600"><span id="res-cost">0</span> บาท</p>
+                        <p class="text-xs text-gray-400 mt-1">อ้างอิงต้นทุน 28,000 บาท / 1 kWp</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-amber-500">
+                        <h3 class="text-sm text-gray-500">ระยะเวลาคืนทุน (Payback Period)</h3>
+                        <p class="text-xl font-bold text-amber-600"><span id="res-payback">0.00</span> ปี</p>
+                        <p class="text-xs text-gray-400 mt-1">ประหยัดได้ <span id="res-save-month" class="font-semibold">0</span> บาท/เดือน</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center text-gray-400 py-10">
+                    <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <p class="mt-2">กรุณาป้อนข้อมูลและกดคำนวณ</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table for Theory & Technical reference -->
+        <div class="p-6 md:p-8 bg-white border-t">
+            <h3 class="text-lg font-semibold mb-4 text-slate-700">รายละเอียดสมมติฐานการคำนวณ</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 rounded-tl-lg">รายการ (Parameters)</th>
+                            <th class="px-4 py-3">ค่าที่ใช้ (Value)</th>
+                            <th class="px-4 py-3 rounded-tr-lg">วิธีคิด / อ้างอิง (Formula)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b">
+                            <td class="px-4 py-3 font-medium text-gray-900">ค่าไฟฟ้า</td>
+                            <td class="px-4 py-3">4.7 บาท/หน่วย</td>
+                            <td class="px-4 py-3">ราคาเฉลี่ยรวมค่า Ft และภาษี</td>
+                        </tr>
+                        <tr class="bg-gray-50 border-b">
+                            <td class="px-4 py-3 font-medium text-gray-900">กำลังผลิตที่ต้องการ (kWp)</td>
+                            <td class="px-4 py-3">ตามสัดส่วนการใช้กลางวัน</td>
+                            <td class="px-4 py-3">หน่วยไฟต่อวัน / (PSH × 0.8)</td>
+                        </tr>
+                        <tr class="bg-white border-b">
+                            <td class="px-4 py-3 font-medium text-gray-900">ราคาประเมินติดตั้ง</td>
+                            <td class="px-4 py-3">28,000 บาท / kWp</td>
+                            <td class="px-4 py-3">ราคาเฉลี่ยตลาดสำหรับระบบ On-Grid</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculateSolar() {
+            // ดึงค่าจาก Input
+            const monthlyBill = parseFloat(document.getElementById('monthlyBill').value);
+            const daytimeUsagePercent = parseFloat(document.getElementById('daytimeUsage').value);
+
+            if (isNaN(monthlyBill) || isNaN(daytimeUsagePercent) || monthlyBill <= 0) {
+                alert("กรุณากรอกข้อมูลให้ถูกต้อง");
+                return;
+            }
+
+            // --- ทฤษฎีและการคำนวณ ---
+            const electricityRate = 4.7; // บาทต่อหน่วย (kWh)
+            const daysInMonth = 30;
+            const psh = 4.5; // Peak Sun Hours
+            const systemEfficiency = 0.8; // เผื่อ Loss 20%
+            const costPerKw = 28000; // ต้นทุนต่อ kWp (บาท)
+
+            // 1. คำนวณหน่วยไฟฟ้าที่ใช้ตอนกลางวันต่อเดือน
+            const totalUnitsPerMonth = monthlyBill / electricityRate;
+            const daytimeUnitsPerMonth = totalUnitsPerMonth * (daytimeUsagePercent / 100);
+            const daytimeUnitsPerDay = daytimeUnitsPerMonth / daysInMonth;
+
+            // 2. คำนวณขนาดระบบแผงโซล่าเซลล์ (kWp)
+            // สูตร: kWp = Units_per_day / (PSH * Efficiency)
+            let requiredKw = daytimeUnitsPerDay / (psh * systemEfficiency);
+            
+            // ปรับขนาดให้เป็นค่ามาตรฐานที่นิยมติดตั้ง (ปัดขึ้นครึ่งทีละ 0.5 kW)
+            requiredKw = Math.ceil(requiredKw * 2) / 2;
+            if (requiredKw < 1.5) requiredKw = 1.5; // ขนาดต่ำสุดที่นิยมติดตั้ง
+
+            // 3. คำนวณขนาด Inverter
+            let inverterSize = requiredKw * 1.1; // Oversize 10%
+            inverterSize = Math.ceil(inverterSize); // ปัดขึ้นเป็นเลขจำนวนเต็ม
+
+            // 4. การคำนวณเศรษฐศาสตร์
+            const estimatedCost = requiredKw * costPerKw;
+            const savingPerMonth = (requiredKw * psh * systemEfficiency * daysInMonth) * electricityRate;
+            const savingPerYear = savingPerMonth * 12;
+            const paybackYears = estimatedCost / savingPerYear;
+
+            // --- แสดงผล ---
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+
+            document.getElementById('res-kwp').innerText = requiredKw.toFixed(2);
+            document.getElementById('res-inverter').innerText = inverterSize.toFixed(2);
+            document.getElementById('res-cost').innerText = estimatedCost.toLocaleString();
+            document.getElementById('res-save-month').innerText = savingPerMonth.toLocaleString(undefined, {maximumFractionDigits: 0});
+            document.getElementById('res-payback').innerText = paybackYears.toFixed(2);
+        }
+    </script>
+</body>
+</html>
